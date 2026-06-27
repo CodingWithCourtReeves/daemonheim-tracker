@@ -10,6 +10,34 @@ const API = params.get("api") ?? "http://localhost:4000";
 const PLAYER = params.get("player") ?? "Daemonbound";
 const REFRESH_MS = 60_000;
 
+// ───────────────────────────────────────────────────────────────────────────
+// EDIT ME: your channel, your invite, and the rules of the run.
+// ───────────────────────────────────────────────────────────────────────────
+const LINKS = {
+  youtube: "https://youtube.com/@YOUR_CHANNEL", // ← your channel URL
+  discord: "https://discord.gg/YOUR_INVITE", // ← your Discord invite
+};
+
+const CREED = {
+  title: "The Pact",
+  intro:
+    "One account. One skill. One way down. The self-imposed rules of a Daemonheim-only Ironman — broadcast in full so nothing is hidden.",
+  rules: [
+    "<b>Ironman, always.</b> No trades, no help, no Grand Exchange. Everything is earned alone.",
+    "<b>Daemonheim is the whole world.</b> Every point of XP must be gained inside a dungeon — no skilling, questing, or bossing on the surface.",
+    "<b>Down in order.</b> Each floor is cleared before the next opens. No skipping the climb in depth or complexity.",
+    "<b>Tokens stay home.</b> Dungeoneering reward tokens are spent only on Dungeoneering rewards.",
+    "<b>Every fall is counted.</b> Deaths are logged here in full view — no quiet retries.",
+    "<b>The goal:</b> Floor 60 at max complexity and Dungeoneering 120, then onward to 200M XP.",
+  ],
+};
+// ───────────────────────────────────────────────────────────────────────────
+
+const ICON = {
+  yt: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M23 7.5a3 3 0 0 0-2.1-2.1C19 4.9 12 4.9 12 4.9s-7 0-8.9.5A3 3 0 0 0 1 7.5 31 31 0 0 0 .5 12 31 31 0 0 0 1 16.5a3 3 0 0 0 2.1 2.1c1.9.5 8.9.5 8.9.5s7 0 8.9-.5a3 3 0 0 0 2.1-2.1A31 31 0 0 0 23.5 12 31 31 0 0 0 23 7.5ZM9.75 15.5v-7l6 3.5-6 3.5Z"/></svg>`,
+  dc: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19.27 5.33A16.5 16.5 0 0 0 15.4 4l-.24.43a13 13 0 0 1 3.2 1.13 12.6 12.6 0 0 0-10.7 0A13 13 0 0 1 10.85 4.4L10.6 4a16.5 16.5 0 0 0-3.87 1.33C3.6 9.5 3 13.6 3.2 17.6a16.6 16.6 0 0 0 4.9 2.5l.4-.6c-.66-.25-1.3-.56-1.9-.93l.47-.36a11.8 11.8 0 0 0 9.86 0l.47.36c-.6.37-1.24.68-1.9.93l.4.6a16.6 16.6 0 0 0 4.9-2.5c.3-4.6-.6-8.7-2.95-12.27ZM9.7 15.3c-.95 0-1.74-.88-1.74-1.96 0-1.08.77-1.96 1.74-1.96s1.76.89 1.74 1.96c0 1.08-.78 1.96-1.74 1.96Zm4.6 0c-.95 0-1.74-.88-1.74-1.96 0-1.08.77-1.96 1.74-1.96s1.76.89 1.74 1.96c0 1.08-.77 1.96-1.74 1.96Z"/></svg>`,
+};
+
 const THEME_VAR: Record<string, string> = {
   frozen: "var(--t-frozen)",
   abandoned: "var(--t-abandoned)",
@@ -192,9 +220,29 @@ function demo(): DashboardStats {
   };
 }
 
+/** Header links + the rules section are static — render once, not on refresh. */
+function renderStatic() {
+  document.getElementById("links")!.innerHTML = `
+    <a class="yt" href="${LINKS.youtube}" target="_blank" rel="noopener">${ICON.yt}<span>YouTube</span></a>
+    <a class="dc" href="${LINKS.discord}" target="_blank" rel="noopener">${ICON.dc}<span>Discord</span></a>`;
+
+  document.getElementById("creed")!.innerHTML = `
+    <div class="eyebrow">Rules of the descent</div>
+    <h2>${CREED.title}</h2>
+    <p class="intro">${CREED.intro}</p>
+    <ol class="tenets">
+      ${CREED.rules.map((r, i) => `<li class="tenet"><span class="n">${String(i + 1).padStart(2, "0")}</span><span class="t">${r}</span></li>`).join("")}
+    </ol>
+    <div class="cta">
+      <a class="yt" href="${LINKS.youtube}" target="_blank" rel="noopener">${ICON.yt} Watch the descent</a>
+      <a class="dc" href="${LINKS.discord}" target="_blank" rel="noopener">${ICON.dc} Join the Discord</a>
+    </div>`;
+}
+
 async function tick() {
   const { stats, live } = await fetchStats();
   render(stats, live);
 }
+renderStatic();
 void tick();
 setInterval(() => void tick(), REFRESH_MS);

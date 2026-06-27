@@ -79,6 +79,34 @@
       .fbody .txt{font-size:13px} .fbody .when{font-family:"IBM Plex Mono";font-size:10px;color:var(--ash-faint);margin-top:3px}
       .foot{margin-top:30px;text-align:center;font-family:"IBM Plex Mono";font-size:10px;color:var(--ash-faint)}
       .banner{font-family:"IBM Plex Mono";font-size:11px;color:var(--torch);text-align:center;margin-bottom:14px}
+      /* header social links */
+      .links{display:flex;gap:10px;align-items:center}
+      .links a{display:inline-flex;align-items:center;gap:7px;text-decoration:none;font-size:12px;font-weight:600;
+        color:var(--ash);border:1px solid var(--stone-line);padding:8px 12px;border-radius:5px;transition:.18s}
+      .links a svg{width:16px;height:16px;fill:currentColor}
+      .links a.yt:hover{color:var(--blood);border-color:rgba(204,75,64,.5)}
+      .links a.dc:hover{color:var(--rune);border-color:var(--rune-deep)}
+      /* creed / rules */
+      .creed{margin-top:24px;border:1px solid var(--stone-line);border-radius:6px;background:var(--stone);
+        padding:30px 30px 26px;position:relative;overflow:hidden}
+      .creed::before{content:"";position:absolute;inset:0;background:radial-gradient(600px 200px at 0% 0%, rgba(232,162,61,.06), transparent 60%);pointer-events:none}
+      .creed .eyebrow{font-family:"IBM Plex Mono";font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--torch)}
+      .creed h2{font-family:"Spectral";font-weight:800;font-size:clamp(30px,4vw,42px);line-height:1;margin:8px 0 6px}
+      .creed .intro{color:var(--ash);font-size:14px;max-width:62ch;margin-bottom:22px}
+      .tenets{list-style:none;display:grid;grid-template-columns:1fr 1fr;gap:16px 30px;margin:0 0 26px}
+      .tenet{display:flex;gap:14px;align-items:baseline}
+      .tenet .n{font-family:"Spectral";font-weight:800;font-size:20px;color:var(--rune);min-width:26px;line-height:1}
+      .tenet .t{font-size:13.5px;line-height:1.5}
+      .tenet .t b{color:var(--bone);font-weight:600}
+      .cta{display:flex;gap:14px;flex-wrap:wrap;padding-top:22px;border-top:1px solid var(--stone-line)}
+      .cta a{display:inline-flex;align-items:center;gap:9px;text-decoration:none;font-weight:600;font-size:14px;
+        padding:11px 18px;border-radius:6px;transition:.18s}
+      .cta a svg{width:18px;height:18px;fill:currentColor}
+      .cta a.yt{background:var(--blood);color:#fff}
+      .cta a.yt:hover{filter:brightness(1.1)}
+      .cta a.dc{background:transparent;color:var(--rune);border:1px solid var(--rune-deep)}
+      .cta a.dc:hover{background:rgba(67,224,200,.08)}
+      @media(max-width:840px){.tenets{grid-template-columns:1fr}.links a span{display:none}}
       @media(max-width:840px){.stage{grid-template-columns:1fr}.gauge{position:relative}.track{display:flex;flex-direction:row-reverse;height:30px}
         .band{flex-direction:row-reverse;flex:1}.floor{height:auto;width:100%;margin:0 .5px}.floor.current{width:6px}.gauge-depth{display:none}
         .duo{grid-template-columns:1fr}.trio{grid-template-columns:1fr}}
@@ -93,6 +121,7 @@
           <div><h1 id="rsn">Daemonbound</h1><div class="sub">Dungeoneering-only Ironman · RS3</div></div>
         </div>
         <div class="topstats" id="topstats"></div>
+        <div class="links" id="links"></div>
       </header>
       <div class="stage">
         <aside class="gauge">
@@ -102,6 +131,7 @@
         </aside>
         <div class="col" id="col"></div>
       </div>
+      <section class="creed" id="creed"></section>
       <div class="foot">Companion site · stats from RuneMetrics + the Alt1 descent log · auto-refreshes</div>
     </div>
     <script type="module" src="/src/main.ts"></script>
