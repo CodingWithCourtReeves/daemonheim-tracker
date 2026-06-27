@@ -110,12 +110,56 @@ RSN, the API base, and the ingest key in the app's settings form.
   until you set `calibrated = true` and fill in the regions. Steps are documented in
   the file. Everything else runs regardless, so the app is useful before this is done.
 
-## Going to production (storage)
+## Storage & migrations
 
-`JsonFileStore` is zero-config for getting started. For a real deployment implement
-the `EventStore` interface (`services/api/src/store.ts`) against Postgres — a single
-append-only `events` table with a unique index on `id` gives you the same dedupe
-semantics, and `aggregate()` stays unchanged.
+The store sits behind the `EventStore` interface, with two implementations:
+
+- **`JsonFileStore`** (dev) — zero-config, used when `DATABASE_URL` is unset.
+- **`PostgresStore`** (prod) — used automatically when `DATABASE_URL` is set.
+  Append is idempotent via `INSERT … ON CONFLICT (id) DO NOTHING`; deletes are
+  soft (`voided = true`) so the append-only audit trail is preserved, and
+  `aggregate()` only ever reads non-voided rows.
+
+Schema changes are managed with **node-pg-migrate**. Migrations live in
+`services/api/migrations/` as SQL files and are tracked in a `pgmigrations` table:
+
+```bash
+cd services/api
+export DATABASE_URL=postgres://daemonheim:password@host:5432/daemonheim
+
+npm run migrate:up                 # apply pending migrations
+npm run migrate:down               # roll back the last one
+npm run migrate:create -- add_xyz  # scaffold a new SQL migration
+```
+
+Run `migrate:up` once on first deploy and again whenever you add a migration.
+(Verified locally: up/down/up cycles cleanly, and the partial indexes match the
+read path in `aggregate()`.)
+
+## Security
+
+Reads are public; **everything that writes or deletes is keyed**, rate-limited,
+and validated.
+
+- **Two keys** (set in `.env`, generated with `openssl rand -hex 24`):
+  - `INGEST_KEY` — the Alt1 app sends it as `x-ingest-key` to `POST /ingest`.
+  - `ADMIN_KEY` — you send it as `x-admin-key` for `GET /events/:player` (raw log)
+    and `DELETE /events/:id` (void a misread). Keep this one to yourself.
+  - Keys are compared in constant time (hashed then `timingSafeEqual`) so the
+    check doesn't leak length or content.
+- **Fail closed:** with `NODE_ENV=production` the server refuses to start unless
+  both keys are set. In dev it runs with a loud warning if they're missing.
+- **Rate limiting** via `@fastify/rate-limit` — a global cap plus a per-route cap
+  on `/ingest`. Tune with `RATE_MAX`.
+- **Payload validation** — JSON-schema on every route: events need `id/type/
+  player/ts`, batches are capped at 50, the body is capped at 256 KB, and the
+  `:player` param is pattern-restricted. Malformed input gets a 400, never the DB.
+- **CORS** is locked to `DASHBOARD_ORIGIN` in production. Note CORS only gates
+  browsers — the API key is what actually protects writes from scripted abuse.
+- **Helmet** sets sensible security headers.
+
+What this does *not* do (out of scope for a single-account tracker, add if needed):
+per-key rotation/revocation, request signing, or audit logging of admin actions.
 
 ## License
 
