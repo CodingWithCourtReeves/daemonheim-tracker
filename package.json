@@ -14,10 +14,15 @@
     "dev:api": "npm run dev -w @daemonheim/api",
     "dev:alt1": "npm run dev -w @daemonheim/alt1-app",
     "dev:dashboard": "npm run dev -w @daemonheim/dashboard",
-    "typecheck": "npm run typecheck --workspaces --if-present"
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "engines": {
     "node": ">=20"
   },
-  "license": "MIT"
+  "license": "MIT",
+  "devDependencies": {
+    "vitest": "^2.1.9"
+  }
 }
