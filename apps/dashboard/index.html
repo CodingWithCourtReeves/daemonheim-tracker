@@ -6,16 +6,16 @@
     <title>The Daemonheim Chronicle</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Spectral:wght@500;600;700;800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
     <style>
       :root{
-        --void:#0B0E10; --stone:#14181B; --stone-raised:#1B2125; --stone-line:#2A333A;
-        --rune:#43E0C8; --rune-deep:#1F8C7E; --torch:#E8A23D; --blood:#CC4B40;
-        --bone:#ECE8DF; --ash:#8B969C; --ash-faint:#5A656B;
-        --t-frozen:#6FB6D6; --t-abandoned:#9AA0A6; --t-furnished:#C58A52; --t-occult:#A579D6;
+        --void:#14100A; --stone:#2B2519; --stone-raised:#372F1F; --stone-line:#5C4E32;
+        --rune:#FFB23D; --rune-deep:#8A6A2A; --torch:#E0822E; --blood:#C0392B;
+        --bone:#ECE0C4; --ash:#B3A07B; --ash-faint:#7C6C4E;
+        --t-frozen:#7FB6D6; --t-abandoned:#B6A988; --t-furnished:#C58A52; --t-occult:#A579D6;
       }
       *{box-sizing:border-box;margin:0;padding:0}
-      body{background:radial-gradient(1200px 600px at 70% -10%, rgba(67,224,200,.06), transparent 60%),var(--void);
+      body{background:radial-gradient(1200px 600px at 70% -10%, rgba(255,178,61,.07), transparent 60%),var(--void);
         color:var(--bone);font-family:"IBM Plex Sans",system-ui,sans-serif;line-height:1.5;-webkit-font-smoothing:antialiased;min-height:100vh}
       .wrap{max-width:1180px;margin:0 auto;padding:28px 22px 80px}
       .topbar{display:flex;align-items:center;justify-content:space-between;gap:18px;flex-wrap:wrap;
@@ -23,8 +23,8 @@
       .brand{display:flex;align-items:center;gap:14px}
       .sigil{width:42px;height:42px;display:grid;place-items:center;border:1px solid var(--rune-deep);
         background:radial-gradient(circle at 50% 35%, rgba(67,224,200,.12), transparent 70%);transform:rotate(45deg);border-radius:4px}
-      .sigil span{transform:rotate(-45deg);color:var(--rune);font-family:"Spectral";font-weight:800;font-size:20px}
-      .brand h1{font-family:"Spectral";font-weight:800;font-size:26px}
+      .sigil span{transform:rotate(-45deg);color:var(--rune);font-family:"Cinzel";font-weight:800;font-size:20px}
+      .brand h1{font-family:"Cinzel";font-weight:800;font-size:26px}
       .brand .sub{font-family:"IBM Plex Mono";font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--ash);margin-top:5px}
       .topstats{display:flex;gap:26px;flex-wrap:wrap}
       .tstat{text-align:right}
@@ -34,20 +34,26 @@
       .stage{display:grid;grid-template-columns:118px 1fr;gap:22px;align-items:start}
       .gauge{position:sticky;top:22px}
       .gauge-label{font-family:"IBM Plex Mono";font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--ash-faint);text-align:center;margin-bottom:12px}
-      .track{border:1px solid var(--stone-line);border-radius:5px;background:linear-gradient(180deg,#10151a,#0a0d10);padding:6px}
+      .track{display:grid;place-items:center}
+      .gauge-ring{width:100%;max-width:132px;height:auto;display:block}
+      .gauge-ring .gr-num{font-family:"Cinzel";font-weight:800;font-size:24px;fill:var(--rune)}
+      .gauge-ring .gr-of{font-family:"IBM Plex Mono";font-size:7px;letter-spacing:.1em;fill:var(--ash-faint)}
+      .gauge-cur{filter:drop-shadow(0 0 3px var(--rune))}
       .band{display:flex;flex-direction:column-reverse}
       .floor{height:7px;margin:1.5px 0;border-radius:2px;background:var(--stone-raised)}
       .floor.current{height:11px;background:var(--rune);box-shadow:0 0 14px rgba(67,224,200,.8)}
-      .gauge-depth{margin-top:16px;text-align:center;padding-top:14px;border-top:1px solid var(--stone-line)}
-      .gauge-depth .num{font-family:"Spectral";font-weight:800;font-size:34px;color:var(--rune);line-height:1}
+      .gauge-depth{display:none}
+      .gauge-depth .num{font-family:"Cinzel";font-weight:800;font-size:34px;color:var(--rune);line-height:1}
       .gauge-depth .of{font-family:"IBM Plex Mono";font-size:11px;color:var(--ash-faint);margin-top:4px}
       .col{display:flex;flex-direction:column;gap:22px}
-      .panel{border:1px solid var(--stone-line);border-radius:6px;background:var(--stone);padding:20px 22px}
+      .panel{border:1px solid var(--stone-line);border-radius:6px;
+        background:linear-gradient(180deg,#332b1c,#241f15);padding:20px 22px;
+        box-shadow:inset 0 1px 0 rgba(255,221,150,.07), 0 2px 7px rgba(0,0,0,.45)}
       .ptitle{font-family:"IBM Plex Mono";font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--ash-faint);display:flex;align-items:center;gap:10px;margin-bottom:16px}
       .ptitle::after{content:"";flex:1;height:1px;background:var(--stone-line)}
       .hero{display:flex;align-items:flex-end;justify-content:space-between;gap:22px;flex-wrap:wrap;padding:26px 24px}
       .hero .eyebrow{font-family:"IBM Plex Mono";font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--torch)}
-      .hero h2{font-family:"Spectral";font-weight:800;font-size:clamp(40px,6vw,64px);line-height:.95;margin:10px 0 6px}
+      .hero h2{font-family:"Cinzel";font-weight:800;font-size:clamp(40px,6vw,64px);line-height:.95;margin:10px 0 6px}
       .hero h2 small{font-weight:500;font-size:.42em;color:var(--ash)}
       .hero .note{color:var(--ash);font-size:14px}
       .hero .note b{color:var(--rune)}
@@ -91,11 +97,11 @@
         padding:30px 30px 26px;position:relative;overflow:hidden}
       .creed::before{content:"";position:absolute;inset:0;background:radial-gradient(600px 200px at 0% 0%, rgba(232,162,61,.06), transparent 60%);pointer-events:none}
       .creed .eyebrow{font-family:"IBM Plex Mono";font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--torch)}
-      .creed h2{font-family:"Spectral";font-weight:800;font-size:clamp(30px,4vw,42px);line-height:1;margin:8px 0 6px}
+      .creed h2{font-family:"Cinzel";font-weight:800;font-size:clamp(30px,4vw,42px);line-height:1;margin:8px 0 6px}
       .creed .intro{color:var(--ash);font-size:14px;max-width:62ch;margin-bottom:22px}
       .tenets{list-style:none;display:grid;grid-template-columns:1fr 1fr;gap:16px 30px;margin:0 0 26px}
       .tenet{display:flex;gap:14px;align-items:baseline}
-      .tenet .n{font-family:"Spectral";font-weight:800;font-size:20px;color:var(--rune);min-width:26px;line-height:1}
+      .tenet .n{font-family:"Cinzel";font-weight:800;font-size:20px;color:var(--rune);min-width:26px;line-height:1}
       .tenet .t{font-size:13.5px;line-height:1.5}
       .tenet .t b{color:var(--bone);font-weight:600}
       .cta{display:flex;gap:14px;flex-wrap:wrap;padding-top:22px;border-top:1px solid var(--stone-line)}
@@ -128,16 +134,15 @@
       .skill:hover{border-color:var(--rune-deep)}
       .skill .ph{position:absolute;left:11px;font-family:"IBM Plex Mono";font-size:11px;color:var(--ash-faint);text-transform:uppercase}
       .skill .ic{width:22px;height:22px;object-fit:contain;image-rendering:auto;z-index:1}
-      .skill .lv{margin-left:auto;font-family:"IBM Plex Mono";font-weight:600;font-size:15px}
-      .skill.up{border-color:var(--rune);box-shadow:0 0 12px rgba(67,224,200,.45)}
+      .skill .lv{margin-left:auto;font-family:"IBM Plex Mono";font-weight:600;font-size:15px;color:#ffe18a;text-shadow:1px 1px 0 #000}
+      .skill.up{border-color:var(--rune);box-shadow:0 0 12px rgba(255,178,61,.5)}
       .skill.up .lv{color:var(--rune)}
       /* charts */
       .chart{width:100%;height:110px;display:block}
       .chart-empty{font-family:"IBM Plex Mono";font-size:12px;color:var(--ash-faint);height:110px;display:grid;place-items:center}
       @media(max-width:840px){.tenets{grid-template-columns:1fr}.links a span{display:none}
         .hero-split{grid-template-columns:1fr}.acct-grid{grid-template-columns:repeat(3,1fr)}}
-      @media(max-width:840px){.stage{grid-template-columns:1fr}.gauge{position:relative}.track{display:flex;flex-direction:row-reverse;height:30px}
-        .band{flex-direction:row-reverse;flex:1}.floor{height:auto;width:100%;margin:0 .5px}.floor.current{width:6px}.gauge-depth{display:none}
+      @media(max-width:840px){.stage{grid-template-columns:1fr}.gauge{position:relative;max-width:160px;margin:0 auto}
         .duo{grid-template-columns:1fr}.trio{grid-template-columns:1fr}}
     </style>
   </head>

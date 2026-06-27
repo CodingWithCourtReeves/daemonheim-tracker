@@ -74,20 +74,8 @@ function render(stats: DashboardStats, live: boolean) {
     ${stats.dungeoneering.rank ? `<div class="tstat"><div class="k">Rank</div><div class="v">#${stats.dungeoneering.rank.toLocaleString()}</div></div>` : ""}
   `;
 
-  // depth gauge
-  const track = document.getElementById("track")!;
-  track.innerHTML = "";
-  const band = document.createElement("div");
-  band.className = "band";
-  for (let f = 1; f <= stats.totalFloors; f++) {
-    const d = document.createElement("div");
-    d.className = "floor" + (f === stats.highestFloor ? " current" : "");
-    if (f < stats.highestFloor) d.style.background = `linear-gradient(90deg, ${THEME_VAR[themeForFloor(f)]}, var(--rune))`;
-    else if (f === stats.highestFloor) d.style.background = "var(--rune)";
-    band.appendChild(d);
-  }
-  track.appendChild(band);
-  document.getElementById("depthNum")!.textContent = String(stats.highestFloor);
+  // depth gauge — circular minimap-style ring
+  document.getElementById("track")!.innerHTML = gaugeRing(stats);
 
   // main column
   const col = document.getElementById("col")!;
@@ -99,6 +87,29 @@ function render(stats: DashboardStats, live: boolean) {
   col.appendChild(histogram(stats));
   col.appendChild(duo(stats));
   col.appendChild(timeline(stats));
+}
+
+// ── Circular depth gauge: 60 floor ticks around a ring, nodding to the new
+//    classic circular minimap. Center shows the deepest floor reached. ────────
+function gaugeRing(s: DashboardStats): string {
+  const N = s.totalFloors;
+  const cx = 50, cy = 50, rIn = 37, rOut = 46;
+  const ticks = Array.from({ length: N }, (_, i) => {
+    const f = i + 1;
+    const ang = ((-90 + (i / N) * 360) * Math.PI) / 180; // start at top, clockwise
+    const x1 = cx + rIn * Math.cos(ang), y1 = cy + rIn * Math.sin(ang);
+    const x2 = cx + rOut * Math.cos(ang), y2 = cy + rOut * Math.sin(ang);
+    let color = "var(--stone-line)", w = 1.6, cls = "";
+    if (f === s.highestFloor) { color = "var(--rune)"; w = 3; cls = ' class="gauge-cur"'; }
+    else if (f < s.highestFloor) { color = THEME_VAR[themeForFloor(f)]; w = 2.2; }
+    return `<line${cls} x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}" stroke="${color}" stroke-width="${w}" stroke-linecap="round"/>`;
+  }).join("");
+  return `<svg viewBox="0 0 100 100" class="gauge-ring" role="img" aria-label="Deepest floor ${s.highestFloor} of ${N}">
+    <circle cx="50" cy="50" r="41.5" fill="none" stroke="var(--stone-line)" stroke-width="0.5" opacity="0.35"/>
+    ${ticks}
+    <text x="50" y="51" text-anchor="middle" class="gr-num">${s.highestFloor}</text>
+    <text x="50" y="62" text-anchor="middle" class="gr-of">OF ${N}</text>
+  </svg>`;
 }
 
 // ── Split hero: the descent on the left, the whole account on the right ──────
