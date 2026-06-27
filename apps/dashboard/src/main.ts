@@ -1,7 +1,10 @@
 import {
   type DashboardStats,
+  type SkillStat,
+  SKILLS,
   themeForFloor,
   xpToLevel,
+  xpForLevel,
 } from "@daemonheim/shared";
 
 // Point this at your deployed API. Override with ?api=... for testing.
@@ -21,14 +24,14 @@ const LINKS = {
 const CREED = {
   title: "The Pact",
   intro:
-    "One account. One skill. One way down. The self-imposed rules of a Daemonheim-only Ironman — broadcast in full so nothing is hidden.",
+    "One account. One way down. A Dungeoneering-only Ironman — every scrap of XP earned beneath Daemonheim. The rules are self-imposed and broadcast in full, so nothing is hidden.",
   rules: [
     "<b>Ironman, always.</b> No trades, no help, no Grand Exchange. Everything is earned alone.",
-    "<b>Daemonheim is the whole world.</b> Every point of XP must be gained inside a dungeon — no skilling, questing, or bossing on the surface.",
-    "<b>Down in order.</b> Each floor is cleared before the next opens. No skipping the climb in depth or complexity.",
+    "<b>Daemonheim is the whole world.</b> Every point of XP — combat, prayer, all of it — is earned inside a dungeon. Nothing is trained on the surface.",
+    "<b>Down in order.</b> Floors are taken in sequence — no skipping the climb, even now the remaster makes every floor worth running.",
     "<b>Tokens stay home.</b> Dungeoneering reward tokens are spent only on Dungeoneering rewards.",
     "<b>Every fall is counted.</b> Deaths are logged here in full view — no quiet retries.",
-    "<b>The goal:</b> Floor 60 at max complexity and Dungeoneering 120, then onward to 200M XP.",
+    "<b>The climb is the point.</b> Floor 60, Dungeoneering 120, 200M XP — milestones along the way, not a finish line. We go as deep as the run takes us.",
   ],
 };
 // ───────────────────────────────────────────────────────────────────────────
@@ -90,21 +93,49 @@ function render(stats: DashboardStats, live: boolean) {
   const col = document.getElementById("col")!;
   col.innerHTML = "";
   col.appendChild(hero(stats));
+  col.appendChild(skillsPanel(stats));
   col.appendChild(trio(stats));
+  col.appendChild(charts(stats));
   col.appendChild(histogram(stats));
   col.appendChild(duo(stats));
-  col.appendChild(feed(stats));
+  col.appendChild(timeline(stats));
 }
 
+// ── Split hero: the descent on the left, the whole account on the right ──────
 function hero(s: DashboardStats): HTMLElement {
-  const theme = themeForFloor(s.highestFloor);
-  const el = panel("hero");
+  const theme = themeForFloor(s.highestFloor || 1);
+  const dungLevel = s.dungeoneering.level || 1;
+  const dungXp = s.dungeoneering.xp;
+  // progress bar: toward 120 while below it, then toward the 200M xp cap.
+  const toCap = dungLevel < 120;
+  const pct = toCap
+    ? clampPct((dungXp / xpForLevel(120)) * 100)
+    : clampPct((dungXp / 200_000_000) * 100);
+  const nines = s.skills.filter((k) => k.level >= 99).length;
+  const onetwenties = s.skills.filter((k) => k.level >= 120).length;
+
+  const el = document.createElement("div");
+  el.className = "hero-split";
   el.innerHTML = `
-    <div>
-      <div class="eyebrow">Deepest descent</div>
+    <section class="panel hero">
+      <div class="eyebrow">The descent</div>
       <h2>Floor ${s.highestFloor} <small>/ ${s.totalFloors}</small></h2>
-      <div class="note">Currently in the <b>${cap(theme)}</b> floors.</div>
-    </div>`;
+      <div class="note">Currently in the <b>${cap(theme)}</b> floors · ${fmtHours(s.timeInDungeonSec)} in Daemonheim</div>
+      <div class="bar-wrap">
+        <div class="bar-row"><span>Dungeoneering ${dungLevel}</span><span>${toCap ? "→ 120" : "→ 200M"}</span></div>
+        <div class="prog"><i style="width:${pct}%"></i></div>
+      </div>
+    </section>
+    <section class="panel hero account">
+      <div class="eyebrow">The account</div>
+      <h2>${s.account.totalLevel.toLocaleString()} <small>total</small></h2>
+      <div class="note">An entire account built <b>only from Dungeoneering</b>.</div>
+      <div class="acct-grid">
+        <div><div class="lab">Combat</div><div class="big">${s.account.combatLevel || "—"}</div></div>
+        <div><div class="lab">Total XP</div><div class="big">${abbr(s.account.totalXp)}</div></div>
+        <div><div class="lab">99s / 120s</div><div class="big">${nines}<span class="sub"> / ${onetwenties}</span></div></div>
+      </div>
+    </section>`;
   return el;
 }
 
@@ -157,13 +188,84 @@ function duo(s: DashboardStats): HTMLElement {
   return el;
 }
 
-function feed(s: DashboardStats): HTMLElement {
+// ── In-game-style skills panel: 3-col icon grid, tap-for-detail, level glow ──
+function skillsPanel(s: DashboardStats): HTMLElement {
   const el = panel();
-  const items = s.recent
-    .map((r) => `<div class="fitem"><div class="fmark ${r.type}"></div><div class="fbody"><div class="txt">${r.text}</div><div class="when">${ago(r.ts)}</div></div></div>`)
-    .join("") || `<div class="fitem"><div class="fbody"><div class="txt" style="color:var(--ash-faint)">No descents logged yet</div></div></div>`;
-  el.innerHTML = `<div class="ptitle">Recent descents</div><div class="feed">${items}</div>`;
+  const leveled = new Set(s.recentlyLeveled.map((r) => r.skill));
+  const cells = s.skills
+    .map((k) => {
+      const file = k.name.toLowerCase();
+      return `<button class="skill${leveled.has(k.name) ? " up" : ""}" data-id="${k.id}" title="${esc(k.name)}">
+        <span class="ph">${esc(k.name.slice(0, 3))}</span>
+        <img class="ic" src="/skills/${file}.png" alt="${esc(k.name)}" loading="lazy" onerror="this.style.display='none'">
+        <span class="lv">${k.level}</span>
+      </button>`;
+    })
+    .join("");
+  el.innerHTML = `
+    <div class="ptitle">Skills <span class="ptag">Total level ${s.account.totalLevel.toLocaleString()}</span></div>
+    <div class="skill-detail" id="skillDetail">Tap a skill for XP detail.</div>
+    <div class="skillgrid">${cells}</div>`;
+
+  const detail = el.querySelector<HTMLElement>("#skillDetail")!;
+  const show = (k: SkillStat) => {
+    const atCap = k.level >= k.cap;
+    const next = atCap ? null : xpForLevel(k.level + 1) - k.xp;
+    detail.innerHTML =
+      `<b>${esc(k.name)}</b> · level ${k.level}<span class="muted">/${k.cap}</span> · ${k.xp.toLocaleString()} xp` +
+      (next != null ? ` · <span class="muted">${next.toLocaleString()} to ${k.level + 1}</span>` : ` · <span class="muted">max</span>`);
+  };
+  el.querySelectorAll<HTMLElement>(".skill").forEach((btn) => {
+    const k = s.skills.find((x) => x.id === Number(btn.dataset.id))!;
+    btn.addEventListener("click", () => show(k));
+    btn.addEventListener("mouseenter", () => show(k));
+  });
   return el;
+}
+
+// ── Two restrained growth charts: total XP, and the Dungeoneering climb ──────
+function charts(s: DashboardStats): HTMLElement {
+  const el = document.createElement("div");
+  el.className = "duo";
+  const xpChart = lineChart(s.history.map((h) => ({ x: h.ts, y: h.totalXp })), "var(--rune)");
+  const lvlChart = lineChart(s.history.map((h) => ({ x: h.ts, y: h.dungLevel })), "var(--torch)", 1, 120);
+
+  const left = panel();
+  left.innerHTML = `<div class="ptitle">Total XP over time</div>${xpChart}`;
+  const right = panel();
+  right.innerHTML = `<div class="ptitle">Dungeoneering climb <span class="ptag">→ 120</span></div>${lvlChart}`;
+  el.appendChild(left);
+  el.appendChild(right);
+  return el;
+}
+
+// ── Milestone timeline: the journey feed (replaces the old recent feed) ──────
+function timeline(s: DashboardStats): HTMLElement {
+  const el = panel();
+  const mark: Record<string, string> = { level: "win", boss_first: "win", deepest: "drop", death: "death" };
+  const items = s.milestones
+    .map((m) => `<div class="fitem"><div class="fmark ${mark[m.type] ?? ""}"></div><div class="fbody"><div class="txt">${esc(m.text)}</div><div class="when">${ago(m.ts)}</div></div></div>`)
+    .join("") || `<div class="fitem"><div class="fbody"><div class="txt" style="color:var(--ash-faint)">The journey hasn't begun — milestones appear here.</div></div></div>`;
+  el.innerHTML = `<div class="ptitle">The journey so far</div><div class="feed">${items}</div>`;
+  return el;
+}
+
+/** Build a small responsive SVG line chart from points; optional y-axis clamp. */
+function lineChart(pts: { x: number; y: number }[], color: string, yMin?: number, yMax?: number): string {
+  if (pts.length < 2) return `<div class="chart-empty">Not enough data yet.</div>`;
+  const W = 300, H = 110, pad = 4;
+  const xs = pts.map((p) => p.x);
+  const ys = pts.map((p) => p.y);
+  const minX = Math.min(...xs), maxX = Math.max(...xs);
+  const minY = yMin ?? Math.min(...ys), maxY = yMax ?? Math.max(...ys);
+  const sx = (x: number) => pad + ((x - minX) / (maxX - minX || 1)) * (W - 2 * pad);
+  const sy = (y: number) => H - pad - ((y - minY) / (maxY - minY || 1)) * (H - 2 * pad);
+  const line = pts.map((p, i) => `${i ? "L" : "M"}${sx(p.x).toFixed(1)},${sy(p.y).toFixed(1)}`).join(" ");
+  const area = `${line} L${sx(maxX).toFixed(1)},${H - pad} L${sx(minX).toFixed(1)},${H - pad} Z`;
+  return `<svg class="chart" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" role="img">
+    <path d="${area}" fill="${color}" opacity="0.08"></path>
+    <path d="${line}" fill="none" stroke="${color}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"></path>
+  </svg>`;
 }
 
 function panel(extra = ""): HTMLElement {
@@ -178,6 +280,16 @@ function abbr(n: number): string {
   return String(n);
 }
 function cap(s: string): string { return s[0].toUpperCase() + s.slice(1); }
+function clampPct(n: number): number { return Math.max(0, Math.min(100, n)); }
+function fmtHours(sec: number): string {
+  const h = Math.floor(sec / 3600);
+  return h >= 1 ? `${h.toLocaleString()}h` : `${Math.floor(sec / 60)}m`;
+}
+/** Escape game/chat-derived text before it goes into innerHTML. */
+function esc(s: string): string {
+  return s.replace(/[&<>"']/g, (c) =>
+    ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]!));
+}
 function ago(ts: number): string {
   const s = Math.floor((Date.now() - ts) / 1000);
   if (s < 60) return `${s}s ago`;
@@ -196,9 +308,48 @@ function demo(): DashboardStats {
     return v;
   });
   const now = Date.now();
+  // Plausible Dungeoneering-only account: combat/support high, pure gathering low.
+  const demoLevels: Record<string, number> = {
+    Attack: 99, Strength: 99, Defence: 99, Constitution: 99, Ranged: 96, Magic: 99,
+    Prayer: 95, Summoning: 92, Necromancy: 90, Herblore: 88, Slayer: 84, Farming: 70,
+    Dungeoneering: 120, Agility: 75, Thieving: 62, Crafting: 64, Fletching: 58,
+    Runecrafting: 55, Construction: 52, Hunter: 60, Divination: 66, Invention: 40,
+    Archaeology: 50, Mining: 45, Smithing: 48, Fishing: 42, Cooking: 47,
+    Woodcutting: 44, Firemaking: 49,
+  };
+  const skills: SkillStat[] = SKILLS.map((m) => {
+    const level = demoLevels[m.name] ?? 1;
+    return { id: m.id, name: m.name, cap: m.cap, level, xp: xpForLevel(level) + 1 };
+  });
+  const totalLevel = skills.reduce((a, k) => a + k.level, 0);
+  const totalXp = skills.reduce((a, k) => a + k.xp, 0);
+
+  // ~30 points climbing from a fresh account to the present.
+  const history = Array.from({ length: 30 }, (_, i) => {
+    const t = i / 29;
+    const dungXp = Math.round(118_400_000 * Math.pow(t, 1.4));
+    return {
+      ts: now - (29 - i) * 36e5,
+      totalXp: Math.round(totalXp * Math.pow(t, 1.3)),
+      dungXp,
+      dungLevel: xpToLevel(dungXp),
+    };
+  });
+
   return {
     player: PLAYER, updatedAt: now,
     dungeoneering: { level: 120, xp: 118_400_000, rank: 1980 },
+    account: { totalLevel, totalXp, combatLevel: 138, rank: 1980 },
+    skills,
+    recentlyLeveled: [{ skill: "Necromancy", from: 89, to: 90, ts: now - 4e5 }],
+    history,
+    milestones: [
+      { type: "level", text: "Necromancy reached level 90", ts: now - 4e5 },
+      { type: "deepest", text: "Reached Floor 47", ts: now - 7e5 },
+      { type: "boss_first", text: "First Yk'Lagor the Thunderous kill", ts: now - 9e6 },
+      { type: "death", text: "Died on Floor 44 to Yk'Lagor the Thunderous", ts: now - 18e6 },
+      { type: "level", text: "Dungeoneering reached level 120", ts: now - 5e7 },
+    ],
     highestFloor: 47, totalFloors: 60, floorsCleared: 1284, descents: 1041,
     deaths: 3, lastDeath: { floor: 44, cause: "Yk'Lagor the Thunderous" },
     timeInDungeonSec: 847 * 3600 + 12 * 60, clearsByFloor: clears,
