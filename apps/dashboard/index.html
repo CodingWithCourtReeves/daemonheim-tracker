@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>The Daemonheim Chronicle</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Spectral:wght@500;600;700;800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+    <style>
+      :root{
+        --void:#0B0E10; --stone:#14181B; --stone-raised:#1B2125; --stone-line:#2A333A;
+        --rune:#43E0C8; --rune-deep:#1F8C7E; --torch:#E8A23D; --blood:#CC4B40;
+        --bone:#ECE8DF; --ash:#8B969C; --ash-faint:#5A656B;
+        --t-frozen:#6FB6D6; --t-abandoned:#9AA0A6; --t-furnished:#C58A52; --t-occult:#A579D6;
+      }
+      *{box-sizing:border-box;margin:0;padding:0}
+      body{background:radial-gradient(1200px 600px at 70% -10%, rgba(67,224,200,.06), transparent 60%),var(--void);
+        color:var(--bone);font-family:"IBM Plex Sans",system-ui,sans-serif;line-height:1.5;-webkit-font-smoothing:antialiased;min-height:100vh}
+      .wrap{max-width:1180px;margin:0 auto;padding:28px 22px 80px}
+      .topbar{display:flex;align-items:center;justify-content:space-between;gap:18px;flex-wrap:wrap;
+        padding-bottom:20px;margin-bottom:24px;border-bottom:1px solid var(--stone-line)}
+      .brand{display:flex;align-items:center;gap:14px}
+      .sigil{width:42px;height:42px;display:grid;place-items:center;border:1px solid var(--rune-deep);
+        background:radial-gradient(circle at 50% 35%, rgba(67,224,200,.12), transparent 70%);transform:rotate(45deg);border-radius:4px}
+      .sigil span{transform:rotate(-45deg);color:var(--rune);font-family:"Spectral";font-weight:800;font-size:20px}
+      .brand h1{font-family:"Spectral";font-weight:800;font-size:26px}
+      .brand .sub{font-family:"IBM Plex Mono";font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--ash);margin-top:5px}
+      .topstats{display:flex;gap:26px;flex-wrap:wrap}
+      .tstat{text-align:right}
+      .tstat .k{font-family:"IBM Plex Mono";font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--ash-faint)}
+      .tstat .v{font-family:"IBM Plex Mono";font-weight:600;font-size:18px;margin-top:3px}
+      .tstat .v em{color:var(--rune);font-style:normal}
+      .stage{display:grid;grid-template-columns:118px 1fr;gap:22px;align-items:start}
+      .gauge{position:sticky;top:22px}
+      .gauge-label{font-family:"IBM Plex Mono";font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--ash-faint);text-align:center;margin-bottom:12px}
+      .track{border:1px solid var(--stone-line);border-radius:5px;background:linear-gradient(180deg,#10151a,#0a0d10);padding:6px}
+      .band{display:flex;flex-direction:column-reverse}
+      .floor{height:7px;margin:1.5px 0;border-radius:2px;background:var(--stone-raised)}
+      .floor.current{height:11px;background:var(--rune);box-shadow:0 0 14px rgba(67,224,200,.8)}
+      .gauge-depth{margin-top:16px;text-align:center;padding-top:14px;border-top:1px solid var(--stone-line)}
+      .gauge-depth .num{font-family:"Spectral";font-weight:800;font-size:34px;color:var(--rune);line-height:1}
+      .gauge-depth .of{font-family:"IBM Plex Mono";font-size:11px;color:var(--ash-faint);margin-top:4px}
+      .col{display:flex;flex-direction:column;gap:22px}
+      .panel{border:1px solid var(--stone-line);border-radius:6px;background:var(--stone);padding:20px 22px}
+      .ptitle{font-family:"IBM Plex Mono";font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--ash-faint);display:flex;align-items:center;gap:10px;margin-bottom:16px}
+      .ptitle::after{content:"";flex:1;height:1px;background:var(--stone-line)}
+      .hero{display:flex;align-items:flex-end;justify-content:space-between;gap:22px;flex-wrap:wrap;padding:26px 24px}
+      .hero .eyebrow{font-family:"IBM Plex Mono";font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--torch)}
+      .hero h2{font-family:"Spectral";font-weight:800;font-size:clamp(40px,6vw,64px);line-height:.95;margin:10px 0 6px}
+      .hero h2 small{font-weight:500;font-size:.42em;color:var(--ash)}
+      .hero .note{color:var(--ash);font-size:14px}
+      .hero .note b{color:var(--rune)}
+      .trio{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+      .stat{border:1px solid var(--stone-line);border-radius:6px;padding:18px;background:var(--stone-raised);position:relative}
+      .stat .lab{font-family:"IBM Plex Mono";font-size:10px;letter-spacing:.13em;text-transform:uppercase;color:var(--ash-faint)}
+      .stat .big{font-family:"IBM Plex Mono";font-weight:600;font-size:30px;margin-top:8px;line-height:1}
+      .stat .meta{font-size:11px;color:var(--ash);margin-top:6px}
+      .stat.death .big{color:var(--blood)} .stat.time .big{color:var(--torch)} .stat.cleared .big{color:var(--rune)}
+      .histo{display:flex;align-items:flex-end;gap:2px;height:150px;margin-top:4px}
+      .bar{flex:1;border-radius:2px 2px 0 0;min-height:2px;background:var(--stone-raised);position:relative}
+      .bar:hover .tip{opacity:1}
+      .tip{position:absolute;bottom:100%;left:50%;transform:translateX(-50%);background:var(--void);border:1px solid var(--rune-deep);
+        font-family:"IBM Plex Mono";font-size:11px;white-space:nowrap;padding:4px 8px;border-radius:4px;opacity:0;pointer-events:none;transition:.15s;z-index:5}
+      .axis{display:flex;justify-content:space-between;font-family:"IBM Plex Mono";font-size:10px;color:var(--ash-faint);margin-top:8px}
+      .duo{display:grid;grid-template-columns:1.1fr 1fr;gap:22px}
+      .brow{display:flex;align-items:center;gap:12px;padding:7px 4px;border-bottom:1px solid rgba(42,51,58,.5)}
+      .brow .name{flex:1;font-size:13px} .brow .cnt{font-family:"IBM Plex Mono";font-size:13px;color:var(--rune);font-weight:600}
+      .brow .meter{width:70px;height:5px;border-radius:3px;background:var(--stone-raised);overflow:hidden}
+      .brow .meter i{display:block;height:100%;background:linear-gradient(90deg,var(--rune-deep),var(--rune))}
+      .drops{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+      .drop{border:1px solid var(--stone-line);border-radius:6px;background:var(--stone-raised);padding:12px 10px;text-align:center}
+      .drop .dn{font-size:11px;line-height:1.25} .drop .rar{font-family:"IBM Plex Mono";font-size:9px;letter-spacing:.1em;text-transform:uppercase;margin-top:5px;color:var(--ash)}
+      .drop .cnt{font-family:"IBM Plex Mono";font-size:11px;color:var(--rune)}
+      .feed{display:flex;flex-direction:column}
+      .fitem{display:flex;gap:14px;padding:11px 2px;border-bottom:1px solid rgba(42,51,58,.5)}
+      .fmark{width:9px;height:9px;border-radius:50%;margin-top:6px;flex:none;background:var(--ash-faint)}
+      .fmark.win{background:var(--rune)} .fmark.drop{background:var(--torch)} .fmark.death{background:var(--blood)}
+      .fbody .txt{font-size:13px} .fbody .when{font-family:"IBM Plex Mono";font-size:10px;color:var(--ash-faint);margin-top:3px}
+      .foot{margin-top:30px;text-align:center;font-family:"IBM Plex Mono";font-size:10px;color:var(--ash-faint)}
+      .banner{font-family:"IBM Plex Mono";font-size:11px;color:var(--torch);text-align:center;margin-bottom:14px}
+      @media(max-width:840px){.stage{grid-template-columns:1fr}.gauge{position:relative}.track{display:flex;flex-direction:row-reverse;height:30px}
+        .band{flex-direction:row-reverse;flex:1}.floor{height:auto;width:100%;margin:0 .5px}.floor.current{width:6px}.gauge-depth{display:none}
+        .duo{grid-template-columns:1fr}.trio{grid-template-columns:1fr}}
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <div id="banner" class="banner"></div>
+      <header class="topbar">
+        <div class="brand">
+          <div class="sigil"><span>D</span></div>
+          <div><h1 id="rsn">Daemonbound</h1><div class="sub">Dungeoneering-only Ironman · RS3</div></div>
+        </div>
+        <div class="topstats" id="topstats"></div>
+      </header>
+      <div class="stage">
+        <aside class="gauge">
+          <div class="gauge-label">Descent</div>
+          <div class="track" id="track"></div>
+          <div class="gauge-depth"><div class="num" id="depthNum">0</div><div class="of">deepest of 60</div></div>
+        </aside>
+        <div class="col" id="col"></div>
+      </div>
+      <div class="foot">Companion site · stats from RuneMetrics + the Alt1 descent log · auto-refreshes</div>
+    </div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

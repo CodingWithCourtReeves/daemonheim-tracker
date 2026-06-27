@@ -1,0 +1,13 @@
+{
+  "name": "@daemonheim/dashboard",
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -p tsconfig.json --noEmit && vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": { "@daemonheim/shared": "*" },
+  "devDependencies": { "typescript": "^5.5.4", "vite": "^5.4.2" }
+}

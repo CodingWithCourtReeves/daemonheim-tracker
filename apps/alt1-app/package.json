@@ -1,0 +1,21 @@
+{
+  "name": "@daemonheim/alt1-app",
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -p tsconfig.json --noEmit && vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@alt1/base": "1.0.0-alpha.7",
+    "@alt1/chatbox": "1.0.0-alpha.7",
+    "@alt1/ocr": "1.0.0-alpha.7",
+    "@daemonheim/shared": "*"
+  },
+  "devDependencies": {
+    "typescript": "^5.5.4",
+    "vite": "^5.4.2"
+  }
+}

@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Daemonheim Tracker</title>
+    <style>
+      :root { color-scheme: dark; }
+      body { font: 14px/1.5 system-ui, sans-serif; margin: 0; padding: 16px;
+        background: #0e1316; color: #e8e6e0; width: 320px; }
+      h1 { font-size: 18px; margin: 0 0 10px; color: #43e0c8; }
+      .status { font-size: 12px; color: #8b969c; }
+      .ok { color: #43e0c8; } .bad { color: #cc4b40; }
+      form { display: flex; flex-direction: column; gap: 8px; margin: 14px 0; }
+      label { display: flex; flex-direction: column; gap: 3px; font-size: 12px; color: #8b969c; }
+      input { background: #1b2125; border: 1px solid #2a333a; color: #e8e6e0;
+        padding: 6px 8px; border-radius: 4px; }
+      button { background: #1f8c7e; color: #fff; border: 0; padding: 8px;
+        border-radius: 4px; cursor: pointer; font-weight: 600; }
+      .hint { font-size: 11px; color: #5a656b; }
+    </style>
+  </head>
+  <body>
+    <div id="app"></div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

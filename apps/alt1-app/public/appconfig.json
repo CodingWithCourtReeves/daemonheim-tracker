@@ -1,0 +1,14 @@
+{
+  "appName": "Daemonheim Tracker",
+  "description": "Dungeoneering-only Ironman progress tracker — reads boss kills, drops, deaths and floor clears, and feeds a public companion dashboard. Screen-reading only; sends no input to the game.",
+  "appUrl": "./index.html",
+  "configUrl": "./appconfig.json",
+  "iconUrl": "./icon.png",
+  "defaultWidth": 340,
+  "defaultHeight": 340,
+  "minWidth": 300,
+  "minHeight": 220,
+  "maxWidth": 480,
+  "maxHeight": 640,
+  "permissions": "pixel,gamestate"
+}
