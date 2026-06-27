@@ -10,6 +10,7 @@ import type { TrackerEvent } from "@daemonheim/shared";
 export interface EventStore {
   append(event: TrackerEvent): Promise<boolean>; // false if duplicate id
   all(player?: string): Promise<TrackerEvent[]>;
+  void(id: string): Promise<boolean>; // remove/hide a bad event (e.g. OCR misread)
 }
 
 export class JsonFileStore implements EventStore {
@@ -48,5 +49,15 @@ export class JsonFileStore implements EventStore {
   async all(player?: string): Promise<TrackerEvent[]> {
     await this.load();
     return player ? this.events.filter((e) => e.player === player) : this.events;
+  }
+
+  async void(id: string): Promise<boolean> {
+    await this.load();
+    const idx = this.events.findIndex((e) => e.id === id);
+    if (idx === -1) return false;
+    this.events.splice(idx, 1);
+    this.seen.delete(id);
+    await this.persist();
+    return true;
   }
 }
