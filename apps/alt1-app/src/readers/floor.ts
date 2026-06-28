@@ -35,7 +35,7 @@ export class FloorReader {
 
   constructor(private sender: EventSender) {}
 
-  read(img: ImageData) {
+  read(img: any) {
     if (!this.calibrated) return;
 
     const anchor = this.findPanel(img);

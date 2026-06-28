@@ -25,15 +25,14 @@ export class ChatReader {
 
   constructor(private sender: EventSender) {}
 
-  read(img: ImageData) {
-    // @alt1/chatbox works against an ImgRef; the base lib augments ImageData,
-    // but to keep types simple we pass through Alt1's reader which accepts it.
+  read(img: any) {
+    // `img` is Alt1's capture handle (ImgRef) from captureHoldFullRs().
     if (!this.located) {
-      const pos = this.reader.find(img as any);
+      const pos = this.reader.find(img);
       this.located = !!pos;
       if (!this.located) return;
     }
-    const lines = this.reader.read(img as any);
+    const lines = this.reader.read(img);
     if (!lines) return;
 
     for (const line of lines) {

@@ -39,14 +39,15 @@ export function permissions(): Permissions {
 }
 
 /**
- * Capture the full RuneScape client as an ImageData. Returns null if Alt1 isn't
- * present or pixel permission hasn't been granted yet.
+ * Capture the full RuneScape client and return Alt1's capture handle (ImgRef).
+ * The @alt1 readers (chatbox, ocr) expect this handle, NOT raw ImageData — pass
+ * the same handle to find()/read() so detection is consistent within a frame.
+ * Returns null if Alt1 isn't present or pixel permission hasn't been granted.
  */
-export function captureClient(): ImageData | null {
+export function captureClient(): a1lib.ImgRef | null {
   if (!isAlt1() || !permissions().pixel) return null;
   try {
-    const img = a1lib.captureHoldFullRs();
-    return img.toData();
+    return a1lib.captureHoldFullRs();
   } catch {
     return null;
   }
