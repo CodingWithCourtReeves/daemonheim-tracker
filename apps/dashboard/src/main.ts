@@ -236,50 +236,141 @@ function skillsPanel(s: DashboardStats): HTMLElement {
   return el;
 }
 
-// ── Two restrained growth charts: total XP, and the Dungeoneering climb ──────
+// ── Two growth charts with axes + hover/tap tooltips ─────────────────────────
 function charts(s: DashboardStats): HTMLElement {
   const el = document.createElement("div");
   el.className = "duo";
-  const xpChart = lineChart(s.history.map((h) => ({ x: h.ts, y: h.totalXp })), "var(--rune)");
-  const lvlChart = lineChart(s.history.map((h) => ({ x: h.ts, y: h.dungLevel })), "var(--torch)", 1, 120);
-
-  const left = panel();
-  left.innerHTML = `<div class="ptitle">Total XP over time</div>${xpChart}`;
-  const right = panel();
-  right.innerHTML = `<div class="ptitle">Dungeoneering climb <span class="ptag">→ 120</span></div>${lvlChart}`;
-  el.appendChild(left);
-  el.appendChild(right);
+  el.appendChild(chartPanel("Total XP over time", s.history, (h) => h.totalXp, "var(--rune)", (v) => abbr(v)));
+  el.appendChild(chartPanel("Dungeoneering climb", s.history, (h) => h.dungLevel, "var(--torch)", (v) => String(v), 1, 120, "→ 120"));
   return el;
 }
 
-// ── Milestone timeline: the journey feed (replaces the old recent feed) ──────
+function chartPanel(
+  title: string,
+  history: DashboardStats["history"],
+  getY: (h: DashboardStats["history"][number]) => number,
+  color: string,
+  fmtY: (v: number) => string,
+  yMin?: number,
+  yMax?: number,
+  tag?: string,
+): HTMLElement {
+  const p = panel();
+  p.innerHTML = `<div class="ptitle">${title}${tag ? ` <span class="ptag">${tag}</span>` : ""}</div>`;
+  if (history.length < 2) {
+    const empty = document.createElement("div");
+    empty.className = "chart-empty";
+    empty.textContent = "Not enough data yet.";
+    p.appendChild(empty);
+  } else {
+    p.appendChild(buildChart(history, getY, color, fmtY, yMin, yMax));
+  }
+  return p;
+}
+
+function buildChart(
+  history: DashboardStats["history"],
+  getY: (h: DashboardStats["history"][number]) => number,
+  color: string,
+  fmtY: (v: number) => string,
+  yMin?: number,
+  yMax?: number,
+): HTMLElement {
+  const W = 320, H = 150, x0 = 42, x1 = W - 10, y0 = 10, y1 = H - 22; // plot box
+  const ys = history.map(getY);
+  const minY = yMin ?? Math.min(...ys);
+  const maxY = yMax ?? Math.max(...ys, minY + 1);
+  const minX = history[0].ts, maxX = history[history.length - 1].ts;
+  const n = history.length;
+  const sx = (i: number) => x0 + (n === 1 ? 0 : i / (n - 1)) * (x1 - x0);
+  const sy = (v: number) => y1 - ((v - minY) / (maxY - minY || 1)) * (y1 - y0);
+  const path = history.map((h, i) => `${i ? "L" : "M"}${sx(i).toFixed(1)},${sy(getY(h)).toFixed(1)}`).join(" ");
+  const area = `${path} L${sx(n - 1).toFixed(1)},${y1} L${sx(0).toFixed(1)},${y1} Z`;
+  const yt = [minY, (minY + maxY) / 2, maxY];
+  const grid = yt.map((v) => `<line x1="${x0}" y1="${sy(v).toFixed(1)}" x2="${x1}" y2="${sy(v).toFixed(1)}" class="grid"/>`).join("");
+  const ylabels = yt.map((v) => `<text x="${x0 - 5}" y="${(sy(v) + 3).toFixed(1)}" class="ax yax">${fmtY(Math.round(v))}</text>`).join("");
+  const xlabels = `<text x="${x0}" y="${H - 6}" class="ax">${shortDate(minX)}</text><text x="${x1}" y="${H - 6}" text-anchor="end" class="ax">${shortDate(maxX)}</text>`;
+
+  const wrap = document.createElement("div");
+  wrap.className = "chart-wrap";
+  wrap.innerHTML = `
+    <svg class="chart" viewBox="0 0 ${W} ${H}">
+      ${grid}
+      <path d="${area}" fill="${color}" opacity="0.09"/>
+      <path d="${path}" fill="none" stroke="${color}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+      <line class="cursor" x1="0" y1="${y0}" x2="0" y2="${y1}" style="display:none"/>
+      <circle class="cdot" r="3.2" fill="${color}" style="display:none"/>
+      ${ylabels}${xlabels}
+      <rect x="${x0}" y="${y0}" width="${x1 - x0}" height="${y1 - y0}" fill="transparent" class="hit"/>
+    </svg>
+    <div class="ctip" style="display:none"></div>`;
+
+  const svg = wrap.querySelector("svg")!;
+  const cursor = wrap.querySelector<SVGLineElement>(".cursor")!;
+  const dot = wrap.querySelector<SVGCircleElement>(".cdot")!;
+  const tip = wrap.querySelector<HTMLElement>(".ctip")!;
+  const move = (clientX: number) => {
+    const rect = svg.getBoundingClientRect();
+    const scale = rect.width / W;
+    const xv = (clientX - rect.left) / scale;
+    let i = Math.round(((xv - x0) / (x1 - x0 || 1)) * (n - 1));
+    i = Math.max(0, Math.min(n - 1, i));
+    const px = sx(i), py = sy(getY(history[i]));
+    cursor.setAttribute("x1", String(px)); cursor.setAttribute("x2", String(px)); cursor.style.display = "";
+    dot.setAttribute("cx", String(px)); dot.setAttribute("cy", String(py)); dot.style.display = "";
+    tip.style.display = "";
+    tip.innerHTML = `<b>${esc(fmtY(getY(history[i])))}</b><span>${esc(shortDate(history[i].ts))}</span>`;
+    tip.style.left = `${Math.max(0, Math.min(rect.width - 96, px * scale - 44))}px`;
+    tip.style.top = `${Math.max(0, py * scale - 34)}px`;
+  };
+  svg.addEventListener("pointermove", (e) => move(e.clientX));
+  svg.addEventListener("pointerdown", (e) => move(e.clientX));
+  svg.addEventListener("pointerleave", () => { cursor.style.display = "none"; dot.style.display = "none"; tip.style.display = "none"; });
+  return wrap;
+}
+
+function shortDate(ts: number): string {
+  const d = new Date(ts);
+  return `${d.getDate()} ${d.toLocaleString("en", { month: "short" })}`;
+}
+
+// ── Milestone timeline: the journey feed, paginated (newest first) ───────────
+const MILESTONES_PER_PAGE = 8;
+let milestonePage = 0; // preserved across the 60s auto-refresh
+
 function timeline(s: DashboardStats): HTMLElement {
   const el = panel();
+  const all = s.milestones;
+  const pages = Math.max(1, Math.ceil(all.length / MILESTONES_PER_PAGE));
+  milestonePage = Math.max(0, Math.min(milestonePage, pages - 1));
   const mark: Record<string, string> = { level: "win", boss_first: "win", deepest: "drop", death: "death" };
-  const items = s.milestones
-    .map((m) => `<div class="fitem"><div class="fmark ${mark[m.type] ?? ""}"></div><div class="fbody"><div class="txt">${esc(m.text)}</div><div class="when">${ago(m.ts)}</div></div></div>`)
-    .join("") || `<div class="fitem"><div class="fbody"><div class="txt" style="color:var(--ash-faint)">The journey hasn't begun — milestones appear here.</div></div></div>`;
-  el.innerHTML = `<div class="ptitle">The journey so far</div><div class="feed">${items}</div>`;
+
+  el.innerHTML = `<div class="ptitle">The journey so far</div><div class="feed"></div><div class="pager"></div>`;
+  const feed = el.querySelector<HTMLElement>(".feed")!;
+  const pager = el.querySelector<HTMLElement>(".pager")!;
+
+  const draw = () => {
+    const start = milestonePage * MILESTONES_PER_PAGE;
+    const slice = all.slice(start, start + MILESTONES_PER_PAGE);
+    feed.innerHTML = slice
+      .map((m) => `<div class="fitem"><div class="fmark ${mark[m.type] ?? ""}"></div><div class="fbody"><div class="txt">${esc(m.text)}</div><div class="when">${ago(m.ts)}</div></div></div>`)
+      .join("") || `<div class="fitem"><div class="fbody"><div class="txt" style="color:var(--ash-faint)">The journey hasn't begun — milestones appear here.</div></div></div>`;
+    pager.innerHTML = pages <= 1 ? "" :
+      `<button class="pg" data-d="-1" ${milestonePage === 0 ? "disabled" : ""}>‹ Newer</button>
+       <span class="pgn">${milestonePage + 1} / ${pages}</span>
+       <button class="pg" data-d="1" ${milestonePage >= pages - 1 ? "disabled" : ""}>Older ›</button>`;
+  };
+
+  pager.addEventListener("click", (e) => {
+    const btn = (e.target as HTMLElement).closest<HTMLElement>(".pg");
+    if (!btn) return;
+    milestonePage = Math.max(0, Math.min(pages - 1, milestonePage + Number(btn.dataset.d)));
+    draw();
+  });
+  draw();
   return el;
 }
 
-/** Build a small responsive SVG line chart from points; optional y-axis clamp. */
-function lineChart(pts: { x: number; y: number }[], color: string, yMin?: number, yMax?: number): string {
-  if (pts.length < 2) return `<div class="chart-empty">Not enough data yet.</div>`;
-  const W = 300, H = 110, pad = 4;
-  const xs = pts.map((p) => p.x);
-  const ys = pts.map((p) => p.y);
-  const minX = Math.min(...xs), maxX = Math.max(...xs);
-  const minY = yMin ?? Math.min(...ys), maxY = yMax ?? Math.max(...ys);
-  const sx = (x: number) => pad + ((x - minX) / (maxX - minX || 1)) * (W - 2 * pad);
-  const sy = (y: number) => H - pad - ((y - minY) / (maxY - minY || 1)) * (H - 2 * pad);
-  const line = pts.map((p, i) => `${i ? "L" : "M"}${sx(p.x).toFixed(1)},${sy(p.y).toFixed(1)}`).join(" ");
-  const area = `${line} L${sx(maxX).toFixed(1)},${H - pad} L${sx(minX).toFixed(1)},${H - pad} Z`;
-  return `<svg class="chart" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" role="img">
-    <path d="${area}" fill="${color}" opacity="0.08"></path>
-    <path d="${line}" fill="none" stroke="${color}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"></path>
-  </svg>`;
-}
 
 function panel(extra = ""): HTMLElement {
   const el = document.createElement("section");
