@@ -12,9 +12,9 @@ export interface AppConfig {
 }
 
 const DEFAULTS: AppConfig = {
-  apiBase: "http://localhost:4000",
-  ingestKey: "",
-  player: "Daemonbound",
+  apiBase: "https://api-production-34b9.up.railway.app",
+  ingestKey: "", // never hard-code — this app is public; enter it in the settings form
+  player: "CourtMaxxing",
   pollMs: 600,
 };
 

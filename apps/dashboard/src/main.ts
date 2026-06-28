@@ -10,7 +10,7 @@ import {
 // Point this at your deployed API. Override with ?api=... (e.g. http://localhost:4000 for dev).
 const params = new URLSearchParams(location.search);
 const API = params.get("api") ?? "https://api-production-34b9.up.railway.app";
-const PLAYER = params.get("player") ?? "Daemonbound";
+const PLAYER = params.get("player") ?? "CourtMaxxing";
 const REFRESH_MS = 60_000;
 
 // ───────────────────────────────────────────────────────────────────────────
@@ -54,8 +54,10 @@ async function fetchStats(): Promise<{ stats: DashboardStats; live: boolean }> {
     const res = await fetch(`${API}/stats/${encodeURIComponent(PLAYER)}`);
     if (!res.ok) throw new Error(String(res.status));
     const stats = (await res.json()) as DashboardStats;
-    if (stats.floorsCleared > 0 || stats.dungeoneering.xp > 0) return { stats, live: true };
-    return { stats: demo(), live: false }; // empty store → show demo so the page isn't blank
+    // Any real signal — even a brand-new account (total level > 0) — is live data.
+    if (stats.floorsCleared > 0 || stats.dungeoneering.xp > 0 || stats.account.totalLevel > 0)
+      return { stats, live: true };
+    return { stats: demo(), live: false }; // truly empty store → show demo so the page isn't blank
   } catch {
     return { stats: demo(), live: false };
   }
