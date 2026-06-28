@@ -6,7 +6,7 @@ import { FloorReader } from "./readers/floor.js";
 import { XpReader } from "./readers/xp.js";
 
 // Your hosted appconfig.json URL once deployed (GitHub Pages). Used for identity.
-const APP_URL = "https://YOUR_USER.github.io/daemonheim-tracker/appconfig.json";
+const APP_URL = "https://codingwithcourtreeves.github.io/daemonheim-tracker/alt1/appconfig.json";
 
 let cfg = loadConfig();
 let sender = new EventSender(cfg);

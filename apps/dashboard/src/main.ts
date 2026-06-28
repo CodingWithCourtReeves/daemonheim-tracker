@@ -7,9 +7,9 @@ import {
   xpForLevel,
 } from "@daemonheim/shared";
 
-// Point this at your deployed API. Override with ?api=... for testing.
+// Point this at your deployed API. Override with ?api=... (e.g. http://localhost:4000 for dev).
 const params = new URLSearchParams(location.search);
-const API = params.get("api") ?? "http://localhost:4000";
+const API = params.get("api") ?? "https://api-production-34b9.up.railway.app";
 const PLAYER = params.get("player") ?? "Daemonbound";
 const REFRESH_MS = 60_000;
 
@@ -208,7 +208,7 @@ function skillsPanel(s: DashboardStats): HTMLElement {
       const file = k.name.toLowerCase();
       return `<button class="skill${leveled.has(k.name) ? " up" : ""}" data-id="${k.id}" title="${esc(k.name)}">
         <span class="ph">${esc(k.name.slice(0, 3))}</span>
-        <img class="ic" src="/skills/${file}.png" alt="${esc(k.name)}" loading="lazy" onerror="this.style.display='none'">
+        <img class="ic" src="skills/${file}.png" alt="${esc(k.name)}" loading="lazy" onerror="this.style.display='none'">
         <span class="lv">${k.level}</span>
       </button>`;
     })
