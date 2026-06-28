@@ -56,9 +56,10 @@ export function aggregate(player: string, events: TrackerEvent[]): DashboardStat
           deepestSoFar = e.floor;
           milestones.push({ type: "deepest", text: `Reached Floor ${e.floor}`, ts: e.ts });
         }
+        const detail = e.complexity && e.size ? ` — C${e.complexity} ${e.size}` : "";
         recent.push({
           type: "win",
-          text: `Cleared Floor ${e.floor} — C${e.complexity} ${e.size}` +
+          text: `Cleared Floor ${e.floor}${detail}` +
             (e.durationSec ? ` in ${fmtDuration(e.durationSec)}` : ""),
           ts: e.ts,
         });

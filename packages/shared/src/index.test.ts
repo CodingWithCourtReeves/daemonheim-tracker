@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { xpToLevel, xpForLevel, themeForFloor, SKILLS, parseRuneMetricsProfile } from "./index.js";
+import { xpToLevel, xpForLevel, themeForFloor, SKILLS, parseRuneMetricsProfile, parseAdventureLog } from "./index.js";
 
 describe("xpToLevel", () => {
   // Dungeoneering is a NORMAL (non-elite) skill: standard XP table, true cap 120.
@@ -101,6 +101,46 @@ describe("parseRuneMetricsProfile", () => {
   test("rank is undefined when RuneMetrics omits it (unranked new account)", () => {
     const s = parseRuneMetricsProfile({ totalxp: 100, skillvalues: [], rank: null });
     expect(s!.rank).toBeUndefined();
+  });
+});
+
+describe("parseAdventureLog", () => {
+  test("extracts a boss kill with count and cleaned name (from real-shaped data)", () => {
+    const out = parseAdventureLog([
+      {
+        date: "28-Jun-2026 05:29",
+        text: "I killed 2 boss monsters in Daemonheim.",
+        details: "I killed 2 boss monsters   called:  a luminescent icefiend    in Daemonheim.",
+      },
+    ]);
+    expect(out).toEqual([{ kind: "boss", boss: "Luminescent icefiend", count: 2, date: "28-Jun-2026 05:29" }]);
+  });
+
+  test("handles a single boss kill (article instead of number)", () => {
+    const out = parseAdventureLog([
+      { date: "d", text: "I killed a boss monster in Daemonheim.", details: "I killed a boss monster called: To'Kash the Bloodchiller in Daemonheim." },
+    ]);
+    expect(out).toEqual([{ kind: "boss", boss: "To'Kash the Bloodchiller", count: 1, date: "d" }]);
+  });
+
+  test("extracts deepest-floor progression", () => {
+    const out = parseAdventureLog([
+      { date: "d", text: "Dungeon floor 5 reached.", details: "I have breached floor 5 of Daemonheim for the first time." },
+    ]);
+    expect(out).toEqual([{ kind: "floor", floor: 5, date: "d" }]);
+  });
+
+  test("ignores level-ups and reward purchases", () => {
+    const out = parseAdventureLog([
+      { date: "d", text: "Levelled up Magic.", details: "I levelled my Magic skill, I am now level 23." },
+      { date: "d", text: "Rapid Renewal prayer bought.", details: "I have bought the Rapid Renewal prayer for 38000 dungeoneering tokens." },
+    ]);
+    expect(out).toEqual([]);
+  });
+
+  test("detects a death entry (best-effort)", () => {
+    const out = parseAdventureLog([{ date: "d", text: "Oh dear, you are dead!", details: "" }]);
+    expect(out.map((a) => a.kind)).toEqual(["death"]);
   });
 });
 

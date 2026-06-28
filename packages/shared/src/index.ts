@@ -125,6 +125,59 @@ export function parseRuneMetricsProfile(data: any): RuneMetricsSample | null {
   };
 }
 
+/**
+ * A meaningful entry parsed out of the RuneMetrics adventure log (`activities`).
+ * Server-side, reliable, and needs no Alt1 screen-reading.
+ */
+export type ParsedActivity =
+  | { kind: "boss"; boss: string; count: number; date: string }
+  | { kind: "floor"; floor: number; date: string }
+  | { kind: "death"; date: string; text: string };
+
+/** Strip a leading article and capitalise — "a luminescent icefiend" → "Luminescent icefiend". */
+function cleanBossName(s: string): string {
+  const t = s.replace(/\s+/g, " ").replace(/^\s*(a|an|the)\s+/i, "").trim();
+  return t ? t[0].toUpperCase() + t.slice(1) : "Daemonheim boss";
+}
+
+/**
+ * Turn RuneMetrics `activities` entries into tracker-worthy items. Captures
+ * Daemonheim boss kills (with counts + names), deepest-floor progression, and
+ * best-effort deaths. Deliberately ignores level-ups (covered by xp samples)
+ * and reward purchases.
+ */
+export function parseAdventureLog(activities: any[]): ParsedActivity[] {
+  const out: ParsedActivity[] = [];
+  for (const a of activities ?? []) {
+    const date = String(a?.date ?? "");
+    const text = String(a?.text ?? "");
+    const details = String(a?.details ?? "");
+    const blob = `${text} ${details}`.replace(/\s+/g, " ").trim();
+    const detailsClean = details.replace(/\s+/g, " ").trim();
+
+    // boss kills: "I killed 2 boss monsters called: a luminescent icefiend in Daemonheim."
+    const cm = blob.match(/killed\s+(\d+|a|an)\s+boss monster/i);
+    if (cm && /Daemonheim/i.test(blob)) {
+      const count = /^\d+$/.test(cm[1]) ? parseInt(cm[1], 10) : 1;
+      const nm = detailsClean.match(/called:\s*(.+?)\s+in Daemonheim/i);
+      out.push({ kind: "boss", boss: cleanBossName(nm ? nm[1] : ""), count, date });
+      continue;
+    }
+    // deepest floor: "Dungeon floor 5 reached" / "breached floor 5 of Daemonheim"
+    const fm = blob.match(/floor\s+(\d+)/i);
+    if (fm && /Daemonheim|Dungeon/i.test(blob)) {
+      out.push({ kind: "floor", floor: parseInt(fm[1], 10), date });
+      continue;
+    }
+    // deaths (wording unconfirmed in the log — best effort)
+    if (/\bi died\b|oh dear, you are dead/i.test(blob)) {
+      out.push({ kind: "death", date, text: blob });
+      continue;
+    }
+  }
+  return out;
+}
+
 /** Display name for a skill id, or the id as a string if unknown. */
 export function skillName(id: number): string {
   return SKILL_BY_ID[id]?.name ?? String(id);
@@ -153,8 +206,9 @@ interface BaseEvent {
 export interface FloorCompletedEvent extends BaseEvent {
   type: "floor_completed";
   floor: number;
-  complexity: Complexity;
-  size: DungeonSize;
+  /** Optional: the adventure-log source only knows the floor number. */
+  complexity?: Complexity;
+  size?: DungeonSize;
   /** Seconds spent on the floor, if the timer was read. */
   durationSec?: number;
   /** Percent explored, 0–100, if read. */
