@@ -4,5 +4,11 @@ import { defineConfig } from "vite";
 // so asset URLs resolve. For https://USER.github.io/daemonheim-tracker/ use that.
 export default defineConfig({
   base: "./",
-  build: { outDir: "dist", target: "es2021" },
+  build: {
+    outDir: "dist",
+    target: "es2021",
+    // The @alt1 alpha libs are CommonJS and load their OCR fonts via require();
+    // transform those so no bare require() survives into the ESM browser bundle.
+    commonjsOptions: { transformMixedEsModules: true },
+  },
 });
