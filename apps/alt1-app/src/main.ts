@@ -37,6 +37,7 @@ function loop() {
     } catch (err) {
       console.warn("[daemonheim] tick error", err);
     }
+    updateDebug();
     setTimeout(tick, cfg.pollMs);
   };
   tick();
@@ -59,9 +60,8 @@ function render() {
       <label>Ingest key<input name="ingestKey" value="${cfg.ingestKey}" type="password"></label>
       <button type="submit">Save & restart readers</button>
     </form>
-    <p class="hint">Reads the screen only — no input is ever sent to the game.
-    Boss / drop / death tracking works now; floor detection activates once you
-    calibrate the panel regions (see readers/floor.ts).</p>
+    <p class="hint">Reads the screen only — no input is ever sent to the game.</p>
+    <div id="debug" class="debug"></div>
   `;
   (app.querySelector("#cfg") as HTMLFormElement).addEventListener("submit", (e) => {
     e.preventDefault();
@@ -74,6 +74,29 @@ function render() {
     rebuild();
     render();
   });
+  updateDebug();
+}
+
+/** Live diagnostics so we can calibrate chat detection without a dev console. */
+function updateDebug() {
+  const el = document.getElementById("debug");
+  if (!el) return;
+  const perm = isAlt1() ? permissions() : { pixel: false, gamestate: false };
+  const lines = chat.recentLines;
+  const last = sender.lastSent as any;
+  el.innerHTML = `
+    <div class="dh">Diagnostics</div>
+    <div>chatbox: <b class="${chat.isLocated ? "ok" : "bad"}">${chat.isLocated ? "locked on" : "searching…"}</b>
+      · screen: <b class="${perm.pixel ? "ok" : "bad"}">${perm.pixel ? "ok" : "no"}</b></div>
+    <div>events sent: <b>${sender.sentCount}</b>${sender.lastError ? ` · <span class="bad">${esc(sender.lastError)}</span>` : ""}</div>
+    ${last ? `<div>last sent: <b>${esc(last.type)}</b> ${esc(last.boss || last.item || last.cause || "")}</div>` : ""}
+    <div class="dh">Recent chat read (${lines.length})</div>
+    <div class="lines">${lines.length ? lines.map((l) => `<div>${esc(l)}</div>`).join("") : "<i>nothing yet — make sure the chatbox is visible on screen</i>"}</div>`;
+}
+
+function esc(s: string): string {
+  return String(s).replace(/[&<>"']/g, (c) =>
+    ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]!));
 }
 
 bootstrap(APP_URL);

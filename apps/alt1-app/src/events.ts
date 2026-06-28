@@ -10,6 +10,11 @@ export class EventSender {
   private queue: TrackerEvent[] = [];
   private sending = false;
 
+  // ---- debug surface (shown in the app for calibration) ----
+  sentCount = 0;
+  lastSent?: TrackerEvent;
+  lastError?: string;
+
   constructor(private cfg: AppConfig) {}
 
   emit(ev: EventInput) {
@@ -38,9 +43,13 @@ export class EventSender {
           body: JSON.stringify(batch),
         });
         if (!res.ok) throw new Error(`ingest ${res.status}`);
+        this.sentCount += batch.length;
+        this.lastSent = batch[batch.length - 1];
+        this.lastError = undefined;
         this.queue.splice(0, batch.length);
       }
     } catch (err) {
+      this.lastError = String(err);
       console.warn("[daemonheim] ingest failed, will retry", err);
       // leave the queue intact; next emit or the poll loop retries
     } finally {

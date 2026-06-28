@@ -17,6 +17,12 @@ export class ChatReader {
   private located = false;
   private seen = new Set<string>(); // de-dupe identical lines within a session
 
+  // ---- debug surface (shown in the app so we can calibrate without a console) ----
+  /** Whether find() has locked onto the chatbox. */
+  get isLocated() { return this.located; }
+  /** Last raw chat lines read, newest last (for tuning the patterns). */
+  readonly recentLines: string[] = [];
+
   constructor(private sender: EventSender) {}
 
   read(img: ImageData) {
@@ -36,6 +42,8 @@ export class ChatReader {
       const key = `${line.basey}:${text}`;
       if (this.seen.has(key)) continue;
       this.seen.add(key);
+      this.recentLines.push(text);
+      if (this.recentLines.length > 14) this.recentLines.shift();
       this.classify(text);
     }
     // keep the de-dupe set from growing unbounded over a long stream
