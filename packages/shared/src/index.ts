@@ -79,6 +79,52 @@ export const SKILL_BY_ID: Record<number, SkillMeta> = Object.fromEntries(
   SKILLS.map((s) => [s.id, s]),
 );
 
+/** Dungeoneering's RuneMetrics/hiscores skill id. */
+export const DUNGEONEERING_ID = 24;
+
+/** The xp_sample payload fields derived from a RuneMetrics profile. */
+export interface RuneMetricsSample {
+  dungeoneeringXp: number;
+  totalXp: number;
+  totalLevel?: number;
+  combatLevel?: number;
+  rank?: number;
+  skills: SkillSample[];
+}
+
+/**
+ * Map a RuneMetrics `profile/profile` JSON response to xp_sample payload fields.
+ * Single source of truth for the endpoint's quirks (verified against the live API):
+ *  - each `skillvalues[].xp` is the real xp ×10 (divide by 10);
+ *  - top-level `totalxp` is the real total (do NOT divide);
+ *  - `rank` is a comma-formatted string (or absent for unranked accounts).
+ * Returns null for an error/empty profile (PROFILE_PRIVATE, NO_PROFILE, etc.).
+ */
+export function parseRuneMetricsProfile(data: any): RuneMetricsSample | null {
+  if (!data || data.error) return null;
+  const skills: SkillSample[] = [];
+  let dungeoneeringXp = 0;
+  for (const s of data.skillvalues ?? []) {
+    if (SKILL_BY_ID[s.id] == null) continue; // ignore ids we don't know
+    const xp = Math.floor((s.xp ?? 0) / 10); // RuneMetrics reports xp ×10
+    skills.push({ id: s.id, level: s.level ?? 1, xp });
+    if (s.id === DUNGEONEERING_ID) dungeoneeringXp = xp;
+  }
+  let rank: number | undefined;
+  if (typeof data.rank === "string") {
+    const n = parseInt(data.rank.replace(/,/g, ""), 10);
+    rank = Number.isFinite(n) ? n : undefined;
+  }
+  return {
+    dungeoneeringXp,
+    totalXp: Math.floor(data.totalxp ?? 0),
+    totalLevel: data.totalskill ?? undefined,
+    combatLevel: data.combatlevel ?? undefined,
+    rank,
+    skills,
+  };
+}
+
 /** Display name for a skill id, or the id as a string if unknown. */
 export function skillName(id: number): string {
   return SKILL_BY_ID[id]?.name ?? String(id);

@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { xpToLevel, xpForLevel, themeForFloor, SKILLS } from "./index.js";
+import { xpToLevel, xpForLevel, themeForFloor, SKILLS, parseRuneMetricsProfile } from "./index.js";
 
 describe("xpToLevel", () => {
   // Dungeoneering is a NORMAL (non-elite) skill: standard XP table, true cap 120.
@@ -67,6 +67,40 @@ describe("SKILLS metadata", () => {
     for (const name of ["Mining", "Smithing", "Woodcutting", "Fletching", "Firemaking", "Runecrafting", "Crafting"]) {
       expect(SKILLS.find((s) => s.name === name)?.cap).toBe(110);
     }
+  });
+});
+
+describe("parseRuneMetricsProfile", () => {
+  test("returns null on an error profile", () => {
+    expect(parseRuneMetricsProfile({ error: "PROFILE_PRIVATE" })).toBeNull();
+    expect(parseRuneMetricsProfile(null)).toBeNull();
+  });
+
+  test("divides skill xp by 10 but leaves totalxp as-is, parses rank, filters unknown ids", () => {
+    const s = parseRuneMetricsProfile({
+      totalxp: 6851,
+      totalskill: 75,
+      combatlevel: 7,
+      rank: "1,234,567",
+      skillvalues: [
+        { id: 24, level: 1, xp: 0 },        // Dungeoneering
+        { id: 3, level: 10, xp: 11540 },     // Constitution: real xp 1154
+        { id: 99, level: 5, xp: 9999 },      // unknown id -> ignored
+      ],
+    });
+    expect(s).not.toBeNull();
+    expect(s!.totalXp).toBe(6851);           // not divided
+    expect(s!.totalLevel).toBe(75);
+    expect(s!.combatLevel).toBe(7);
+    expect(s!.rank).toBe(1234567);           // comma-stripped
+    expect(s!.dungeoneeringXp).toBe(0);
+    expect(s!.skills).toHaveLength(2);        // unknown id filtered out
+    expect(s!.skills.find((k) => k.id === 3)).toEqual({ id: 3, level: 10, xp: 1154 });
+  });
+
+  test("rank is undefined when RuneMetrics omits it (unranked new account)", () => {
+    const s = parseRuneMetricsProfile({ totalxp: 100, skillvalues: [], rank: null });
+    expect(s!.rank).toBeUndefined();
   });
 });
 

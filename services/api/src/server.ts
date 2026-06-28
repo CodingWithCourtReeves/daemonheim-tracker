@@ -6,6 +6,7 @@ import type { TrackerEvent } from "@daemonheim/shared";
 import { createStore } from "./db.js";
 import { aggregate } from "./aggregate.js";
 import { requireKey } from "./security.js";
+import { startRuneMetricsPoller } from "./poller.js";
 
 const NODE_ENV = process.env.NODE_ENV ?? "development";
 const PROD = NODE_ENV === "production";
@@ -129,6 +130,14 @@ async function shutdown() {
 }
 process.on("SIGTERM", shutdown);
 process.on("SIGINT", shutdown);
+
+// Optional: keep XP/skills fresh straight from RuneMetrics, no Alt1 required.
+const POLL_PLAYER = process.env.POLL_PLAYER ?? "";
+if (POLL_PLAYER) {
+  const everyMs = Number(process.env.POLL_INTERVAL_MS ?? 60_000);
+  startRuneMetricsPoller(store, POLL_PLAYER, everyMs, (m) => app.log.info(m));
+  app.log.info(`RuneMetrics poller on for ${POLL_PLAYER} every ${everyMs}ms`);
+}
 
 app
   .listen({ port: PORT, host: HOST })
